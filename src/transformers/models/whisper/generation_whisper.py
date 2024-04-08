@@ -62,7 +62,7 @@ def _median_filter(inputs: torch.Tensor, filter_width: int) -> torch.Tensor:
     return result
 
 
-def _dynamic_time_warping(matrix: np.ndarray):
+def _dynamic_time_warping(matrix: np.ndarray, allow_vertical_moves: bool = True):
     """
     Measures similarity between two temporal sequences: the input audio and the output tokens. Used to generate
     token-level timestamps.
@@ -75,7 +75,7 @@ def _dynamic_time_warping(matrix: np.ndarray):
     for j in range(1, input_length + 1):
         for i in range(1, output_length + 1):
             c0 = cost[i - 1, j - 1]
-            c1 = cost[i - 1, j]
+            c1 = cost[i - 1, j] if allow_vertical_moves else np.inf
             c2 = cost[i, j - 1]
 
             if c0 < c1 and c0 < c2:
@@ -102,7 +102,7 @@ def _dynamic_time_warping(matrix: np.ndarray):
         if trace[i, j] == 0:
             i -= 1
             j -= 1
-        elif trace[i, j] == 1:
+        elif trace[i, j] == 1 and allow_vertical_moves:
             i -= 1
         elif trace[i, j] == 2:
             j -= 1
@@ -226,8 +226,16 @@ class WhisperGenerationMixin:
 
         # Perform dynamic time warping on each element of the batch.
         for batch_idx in range(batch_size):
+            non_special_tokens_indices = []
+            special_tokens_indices = []
+            for index_, token_id in enumerate(generate_outputs.sequences[batch_idx, 1:]):
+                if self.generation_config.token_ids_to_ignore_for_dtw:
+                    if token_id not in self.generation_config.token_ids_to_ignore_for_dtw and token_id < self.model.config.eos_token_id:
+                        non_special_tokens_indices.append(index_)
+                    else:
+                        special_tokens_indices.append(index_)
             if num_frames is not None and isinstance(num_frames, (tuple, list, np.ndarray)):
-                matrix = weights[batch_idx, ..., : num_frames[batch_idx] // 2]
+                matrix = weights[batch_idx, :, non_special_tokens_indices, :num_frames[batch_idx] // 2]
 
                 # Normalize and smoothen the weights.
                 std = torch.std(matrix, dim=-2, keepdim=True, unbiased=False)
@@ -238,11 +246,15 @@ class WhisperGenerationMixin:
                 # Average the different cross-attention heads.
                 matrix = matrix.mean(dim=0)
             else:
-                matrix = weights[batch_idx]
+                matrix = weights[batch_idx, non_special_tokens_indices, :]
 
-            text_indices, time_indices = _dynamic_time_warping(-matrix.cpu().double().numpy())
+            text_indices, time_indices = _dynamic_time_warping(-matrix.cpu().double().numpy(), allow_vertical_moves=False)
             jumps = np.pad(np.diff(text_indices), (1, 0), constant_values=1).astype(bool)
-            jump_times = time_indices[jumps] * time_precision
+            jump_times = list((time_indices[jumps] * time_precision).round(4))
+            for index_ in special_tokens_indices:
+                # since jump_times is only extended in the next step, take index_ and not (index_ + 1)
+                next_element = jump_times[index_] if index_ < len(jump_times) else round((time_indices[-1] * time_precision), 4)
+                jump_times.insert(index_, next_element)
             timestamps[batch_idx, 1:] = torch.tensor(jump_times)
 
         return timestamps

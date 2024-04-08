@@ -1203,6 +1203,7 @@ def _collate_word_timestamps(tokenizer, tokens, token_timestamps, language):
         }
         for word, indices in zip(words, token_indices)
     ]
+    timings = [timing for timing in timings if timing["text"] != " "]
     return timings
 
 
@@ -1275,7 +1276,7 @@ def _split_tokens_on_spaces(tokenizer, tokens: List[int]):
         with_space = subword.startswith(" ")
         punctuation = subword.strip() in "!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~"
 
-        if special or with_space or punctuation or len(words) == 0:
+        if special or with_space or punctuation or len(words) == 0 or words[-1] == " ":
             words.append(subword)
             word_tokens.append(subword_tokens)
             token_indices.append(subword_indices)
@@ -1293,7 +1294,7 @@ def _merge_punctuations(words, tokens, indices, prepended, appended):
     i = len(words) - 2
     j = len(words) - 1
     while i >= 0:
-        if words[i].startswith(" ") and words[i].strip() in prepended:
+        if words[i].startswith(" ") and words[i].strip() in list(prepended):
             words[j] = words[i] + words[j]
             tokens[j] = tokens[i] + tokens[j]
             indices[j] = indices[i] + indices[j]
@@ -1308,7 +1309,7 @@ def _merge_punctuations(words, tokens, indices, prepended, appended):
     i = 0
     j = 1
     while j < len(words):
-        if not words[i].endswith(" ") and words[j] in appended:
+        if not words[i].endswith(" ") and words[j] in list(appended):
             words[i] += words[j]
             tokens[i] += tokens[j]
             indices[i] += indices[j]
