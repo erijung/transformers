@@ -216,9 +216,9 @@ class WhisperGenerationMixin:
 
         if num_frames is None or isinstance(num_frames, int):
             # Normalize and smoothen the weights.
-            std = torch.std(weights, dim=-2, keepdim=True, unbiased=False)
-            mean = torch.mean(weights, dim=-2, keepdim=True)
-            weights = (weights - mean) / std
+            #std = torch.std(weights, dim=-2, keepdim=True, unbiased=False)
+            #mean = torch.mean(weights, dim=-2, keepdim=True)
+            #weights = (weights - mean) / std
             weights = _median_filter(weights, self.config.median_filter_width)
 
             # Average the different cross-attention heads.
@@ -238,9 +238,9 @@ class WhisperGenerationMixin:
                 matrix = weights[batch_idx, :, non_special_tokens_indices, :num_frames[batch_idx] // 2]
 
                 # Normalize and smoothen the weights.
-                std = torch.std(matrix, dim=-2, keepdim=True, unbiased=False)
-                mean = torch.mean(matrix, dim=-2, keepdim=True)
-                matrix = (matrix - mean) / std
+                #std = torch.std(matrix, dim=-2, keepdim=True, unbiased=False)
+                #mean = torch.mean(matrix, dim=-2, keepdim=True)
+                #matrix = (matrix - mean) / std
                 matrix = _median_filter(matrix, self.config.median_filter_width)
 
                 # Average the different cross-attention heads.
