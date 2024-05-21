@@ -354,7 +354,10 @@ class WhisperAttention(nn.Module):
                 )
             attn_weights = attn_weights.view(bsz, self.num_heads, tgt_len, src_len) + attention_mask
             attn_weights = attn_weights.view(bsz * self.num_heads, tgt_len, src_len)
-        #attn_weights_before_softmax = attn_weights.detach()
+
+        attn_weights_2 = nn.functional.softmax(attn_weights/2, dim=-1)
+        attn_weights_2 = attn_weights_2*(attn_weights_2 > 0.001).float()
+    
         attn_weights = nn.functional.softmax(attn_weights, dim=-1)
 
         if layer_head_mask is not None:
@@ -365,7 +368,9 @@ class WhisperAttention(nn.Module):
                 )
             attn_weights = layer_head_mask.view(1, -1, 1, 1) * attn_weights.view(bsz, self.num_heads, tgt_len, src_len)
             attn_weights = attn_weights.view(bsz * self.num_heads, tgt_len, src_len)
-
+            
+            attn_weights_2 = layer_head_mask.view(1, -1, 1, 1) * attn_weights_2.view(bsz, self.num_heads, tgt_len, src_len)
+            attn_weights_2 = attn_weights_2.view(bsz * self.num_heads, tgt_len, src_len)
         if output_attentions:
             # this operation is a bit awkward, but it's required to
             # make sure that attn_weights keeps its gradient.
