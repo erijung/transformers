@@ -220,7 +220,7 @@ class WhisperGenerationMixin:
                 std = torch.std(weights, dim=-2, keepdim=True, unbiased=False)
                 mean = torch.mean(weights, dim=-2, keepdim=True)
                 weights = (weights - mean) / std
-            weights = _median_filter(weights, self.config.median_filter_width)
+            weights = _median_filter(weights, self.generation_config.median_filter_width)
 
             # Average the different cross-attention heads.
             weights = weights.mean(dim=1)
@@ -243,7 +243,7 @@ class WhisperGenerationMixin:
                     std = torch.std(matrix, dim=-2, keepdim=True, unbiased=False)
                     mean = torch.mean(matrix, dim=-2, keepdim=True)
                     matrix = (matrix - mean) / std
-                matrix = _median_filter(matrix, self.config.median_filter_width)
+                matrix = _median_filter(matrix, self.generation_config.median_filter_width)
 
                 # Average the different cross-attention heads.
                 matrix = matrix.mean(dim=0)
