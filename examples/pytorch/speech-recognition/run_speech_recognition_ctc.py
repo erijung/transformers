@@ -51,7 +51,11 @@ from transformers.utils.versions import require_version
 
 
 # Will error if the minimal version of Transformers is not installed. Remove at your own risks.
+<<<<<<< HEAD
 check_min_version("4.40.0.dev0")
+=======
+check_min_version("4.37.0")
+>>>>>>> modify_whisper_dtw
 
 require_version("datasets>=1.18.0", "To fix: pip install -r examples/pytorch/speech-recognition/requirements.txt")
 

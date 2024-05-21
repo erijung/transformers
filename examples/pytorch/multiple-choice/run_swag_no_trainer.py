@@ -56,7 +56,11 @@ from transformers.utils import PaddingStrategy, check_min_version, send_example_
 
 
 # Will error if the minimal version of Transformers is not installed. Remove at your own risks.
+<<<<<<< HEAD
 check_min_version("4.40.0.dev0")
+=======
+check_min_version("4.37.0")
+>>>>>>> modify_whisper_dtw
 
 logger = get_logger(__name__)
 # You should update this to your particular problem to have better documentation of `model_type`

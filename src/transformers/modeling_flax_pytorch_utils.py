@@ -255,10 +255,14 @@ def convert_pytorch_sharded_state_dict_to_flax(shard_filenames, flax_model):
         # load using msgpack utils
         weights_only_kwarg = {"weights_only": True} if is_torch_greater_or_equal_than_1_13 else {}
         pt_state_dict = torch.load(shard_file, **weights_only_kwarg)
+<<<<<<< HEAD
         weight_dtypes = {k: v.dtype for k, v in pt_state_dict.items()}
         pt_state_dict = {
             k: v.numpy() if v.dtype != torch.bfloat16 else v.float().numpy() for k, v in pt_state_dict.items()
         }
+=======
+        pt_state_dict = {k: v.numpy() for k, v in pt_state_dict.items()}
+>>>>>>> modify_whisper_dtw
 
         model_prefix = flax_model.base_model_prefix
 

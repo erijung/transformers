@@ -18,7 +18,11 @@
 # to defer the actual importing for when the objects are requested. This way `import transformers` provides the names
 # in the namespace without actually importing anything (and especially none of the backends).
 
+<<<<<<< HEAD
 __version__ = "4.40.0.dev0"
+=======
+__version__ = "4.37.2"
+>>>>>>> modify_whisper_dtw
 
 from typing import TYPE_CHECKING
 
