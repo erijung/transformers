@@ -61,6 +61,62 @@ def _median_filter(inputs: torch.Tensor, filter_width: int) -> torch.Tensor:
     result = inputs.unfold(-1, filter_width, 1).sort()[0][..., pad_width]
     return result
 
+def _dynamic_time_warping2(matrix: np.ndarray, allow_vertical_moves: bool = True):
+    """
+    Measures similarity between two temporal sequences: the input audio and the output tokens. Used to generate
+    token-level timestamps.
+    """
+    output_length, input_length = matrix.shape
+    cost = np.ones((output_length + 1, input_length + 1), dtype=np.float32) * np.inf
+    trace = -np.ones((output_length + 1, input_length + 1), dtype=np.float32)
+
+    cost[0, 0] = 0
+    for j in range(1, input_length + 1):
+        for i in range(1, output_length + 1):
+            c0 = cost[i - 1, j - 1]
+            c1 = cost[i - 1, j] if allow_vertical_moves else np.inf
+            c2 = cost[i, j - 1]
+
+            if c0 <= c1 and c0 <= c2:
+                c, t = c0, 0
+            elif c1 <= c0 and c1 <= c2:
+                c, t = c1, 1
+            else:
+                c, t = c2, 2
+
+            cost[i, j] = matrix[i - 1, j - 1] + c
+            trace[i, j] = t
+
+    # backtrace
+    i = output_length
+    j = input_length
+    trace[0, :] = 2
+    trace[:, 0] = 1
+
+    text_indices = []
+    time_indices = []
+    while i > 0 or j > 0:
+        text_indices.append(i - 1)
+        time_indices.append(j - 1)
+        if i == 0:
+            j -= 1
+        elif j == 0:
+            i -= 1
+        elif trace[i, j] == 0:
+            i -= 1
+            j -= 1
+        elif trace[i, j] == 1 and allow_vertical_moves:
+            i -= 1
+        elif trace[i, j] == 2:
+            j -= 1
+        else:
+            # Handle unexpected cases by moving diagonally
+            i -= 1
+            j -= 1
+
+    text_indices = np.array(text_indices)[::-1]
+    time_indices = np.array(time_indices)[::-1]
+    return text_indices, time_indices
 
 def _dynamic_time_warping(matrix: np.ndarray, allow_vertical_moves: bool = True):
     """
@@ -250,7 +306,7 @@ class WhisperGenerationMixin:
             else:
                 matrix = weights[batch_idx, non_special_tokens_indices, :]
 
-            text_indices, time_indices = _dynamic_time_warping(-matrix.cpu().double().numpy(), allow_vertical_moves=False)
+            text_indices, time_indices = _dynamic_time_warping2(-matrix.cpu().double().numpy(), allow_vertical_moves=False)
             jumps = np.pad(np.diff(text_indices), (1, 0), constant_values=1).astype(bool)
             jump_times = list((time_indices[jumps] * time_precision).round(4))
             for index_ in special_tokens_indices:
