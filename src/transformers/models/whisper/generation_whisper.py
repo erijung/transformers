@@ -313,7 +313,11 @@ class WhisperGenerationMixin:
                 # since jump_times is only extended in the next step, take index_ and not (index_ + 1)
                 next_element = jump_times[index_] if index_ < len(jump_times) else round((time_indices[-1] * time_precision), 4)
                 jump_times.insert(index_, next_element)
-            timestamps[batch_idx, 1:] = torch.tensor(jump_times)
+            # print("SURPRISE:", timestamps.shape, batch_idx, torch.tensor(jump_times).shape)
+            if timestamps.shape[-1] == len(jump_times):
+                timestamps[batch_idx, 0:] = torch.tensor(jump_times)
+            else:
+                timestamps[batch_idx, 1:] = torch.tensor(jump_times)
 
         return timestamps
 
